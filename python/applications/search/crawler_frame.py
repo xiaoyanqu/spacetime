@@ -5,6 +5,7 @@ from spacetime_local.declarations import Producer, GetterSetter, Getter
 from lxml import html,etree
 import re, os
 from time import time
+from io import StringIO
 
 try:
     # For python 2
@@ -76,7 +77,7 @@ def process_url_group(group, useragentstr):
 STUB FUNCTIONS TO BE FILLED OUT BY THE STUDENT.
 '''
 def extract_next_links(rawDatas):
-    outputLinks = list()
+    outputLinks = []
     '''
     rawDatas is a list of tuples -> [(url1, raw_content1), (url2, raw_content2), ....]
     the return of this function should be a list of urls in their absolute form
@@ -86,10 +87,14 @@ def extract_next_links(rawDatas):
 
     Suggested library: lxml
     '''
-    assert isinstance(rawDatas, list) and len(rawDatas) > 0, "ERROR: wrong input."
+    # assert isinstance(rawDatas, list) and len(rawDatas) > 0, "ERROR: wrong input."
 
     for combo in rawDatas:
         base, string_content = combo[0], combo[1] # assume the content is in String format
+
+        # print type(string_content), len(string_content)
+        # string_content = ''.join(string_content.split('\n'))
+        # print type(string_content), len(string_content)
 
         namespace = extract_namespace(string_content)
         relative_urls = parse_String_content(string_content, namespace)
@@ -122,17 +127,19 @@ def trucate_the_last_dir(base):
     for i in range(len(base) - 1, -1, -1):
         if base[i] == '/':
             return base[: i]
-        if base[i] == '.':
-            raise Exception("ERROR in trucate_the_last_dir(): base url format worng.")
 
+    # print "base2:", base
     raise Exception("ERROR in trucate_the_last_dir(): base url format worng.")
 
 def parse_String_content(content, xmlns):
     relative_urls = []
-    tree = etree.fromstring(content)
+    parser = etree.HTMLParser()
+    uni_content = content.decode('unicode-escape')
+    tree = etree.parse(StringIO(uni_content), parser)
     iterable = tree.getiterator(tag = xmlns + "a")
     for elm in iterable:
-        relative_urls.append(elm.attrib['href'])
+        if 'href' in elm.attrib: # <a> element doesn't contain "href" is a hyperlink placeholder.
+            relative_urls.append(elm.attrib['href'])
     return relative_urls
 
 def is_valid(url):
