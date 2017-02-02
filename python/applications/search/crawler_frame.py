@@ -92,14 +92,17 @@ def extract_next_links(rawDatas):
     for combo in rawDatas:
         base, string_content = combo[0], combo[1] # assume the content is in String format
 
-        # print type(string_content), len(string_content)
-        # string_content = ''.join(string_content.split('\n'))
-        # print type(string_content), len(string_content)
-
         namespace = extract_namespace(string_content)
         relative_urls = parse_String_content(string_content, namespace)
-        absolute_urls = [relative2absolute(base, url) for url in relative_urls]
+        absolute_urls = []
+        for url in relative_urls:
+            if url.startswith("http"):
+                absolute_urls.append(url)
+            else:
+                print "******* RELATIVE URL:", url
+                absolute_urls.append(relative2absolute(base, url))
         outputLinks.extend(absolute_urls)
+        # outputLinks.extend(relative_urls)
     return outputLinks
 
 def extract_namespace(content):
@@ -113,13 +116,17 @@ def relative2absolute(base, relative):
     # abs: http://www.ics.uci.edu/something.html
     if base[-1] == '/':
          base = base[:-1]
+
     if relative[0] == '/':
-        relative = relative[1:]
+        edu = base.find("edu")
+        print "********** RECONSTRUCT ABSOLUTE URL FROM '/'':", base[:edu + 3] + relative
+        return base[:edu + 3] + relative
 
     while relative.startswith("../"):
         relative = relative[3:]
         base = trucate_the_last_dir(base)
 
+    print "********** RECONSTRUCT ABSOLUTE URL FROM '../'':", base + '/' + relative
     return base + '/' + relative
 
 def trucate_the_last_dir(base):
@@ -132,6 +139,7 @@ def trucate_the_last_dir(base):
     raise Exception("ERROR in trucate_the_last_dir(): base url format worng.")
 
 def parse_String_content(content, xmlns):
+    print "==================== Start a new page"
     relative_urls = []
     parser = etree.HTMLParser()
     uni_content = content.decode('unicode-escape')
@@ -139,6 +147,7 @@ def parse_String_content(content, xmlns):
     iterable = tree.getiterator(tag = xmlns + "a")
     for elm in iterable:
         if 'href' in elm.attrib: # <a> element doesn't contain "href" is a hyperlink placeholder.
+            print "======== ADD: ", elm.attrib['href']
             relative_urls.append(elm.attrib['href'])
     return relative_urls
 
