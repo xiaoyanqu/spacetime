@@ -146,10 +146,42 @@ def parse_String_content(content, xmlns):
     tree = etree.parse(StringIO(uni_content), parser)
     iterable = tree.getiterator(tag = xmlns + "a")
     for elm in iterable:
-        if 'href' in elm.attrib: # <a> element doesn't contain "href" is a hyperlink placeholder.
+        if 'href' in elm.attrib: # there are <a> elements that don't contain "href" is a hyperlink placeholder.
             print "======== ADD: ", elm.attrib['href']
             relative_urls.append(elm.attrib['href'])
     return relative_urls
+
+def contain_duplications(url):
+    """
+    this function checks if the given url contains duplicated "elements" that make it more likely a trap.
+    such element includes: duplicated php, duplicated http, duplicated same word.
+    """
+
+    return contain_duplicated_stopElements(url) or contain_duplicated_addressElements(url)
+
+def contain_duplicated_stopElements(url):
+    stop_elements = ["php", "http", "www", ".edu", ".com", "index"]
+    for word in stop_elements:
+        if url.count(word) > 1:
+            print "URL CONTAINS DUPLICATED STOP_ELEMENTS."
+            return True
+    return False
+
+def contain_duplicated_addressElements(url):
+    hm = {}
+    elements = url.split('/')
+
+    for elem in elements:
+        if elem in hm:
+            hm[elem] += 1
+        else:
+            hm[elem] = 1
+    for k in hm:
+        # if there're any duplicated elements, return True
+        if hm[k] > 1:
+            print "URL CONTAINS DUPLICATED ADDRESS ELEMENTS."
+            return True
+    return False
 
 def is_valid(url):
     '''
@@ -163,6 +195,10 @@ def is_valid(url):
         print "url is not in absolute form, 1"
         return False
 
+    if contain_duplications(url):
+        return False
+
+
     parsed = urlparse(url)
     if parsed.scheme not in set(["http", "https"]):
         print "url is not in absolute form, 2"
@@ -170,6 +206,10 @@ def is_valid(url):
 
     if "calendar" in url:
         print "encounter calendar."
+        return False
+
+    if "archive" in url:
+        print "encounter archive."
         return False
 
     try:
